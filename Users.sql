@@ -1,0 +1,12 @@
+CREATE TABLE Users
+(
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+
+    FirstName NVARCHAR(100) NOT NULL,
+    LastName NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(150) NOT NULL,
+    Password NVARCHAR(256) NOT NULL,
+    AccountType NVARCHAR(50) NOT NULL,
+    PhoneNumber NVARCHAR(20) NULL,
+    ActionDate DATETIME NOT NULL
+);

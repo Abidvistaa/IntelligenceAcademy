@@ -24,20 +24,20 @@ namespace IntelligenceAcademy.Controllers
             return Ok(result);
         }
 
-        [Authorize]
+        [AllowAnonymous]
         [HttpGet("GetUserList")]
         public async Task<IActionResult> GetUserList()
         {
-            var borrows = await _userService.GetAllAsync();
-            return Ok(borrows);
+            var users = await _userService.GetAllAsync();
+            return Ok(users);
         }
 
-        [Authorize]
+        [AllowAnonymous]
         [HttpGet("GetUser/{id}")]
         public async Task<IActionResult> GetUser(int id)
         {
-            var borrow = await _userService.GetByIdAsync(id);
-            return Ok(borrow);
+            var user = await _userService.GetByIdAsync(id);
+            return Ok(user);
         }
 
         [AllowAnonymous]
@@ -49,7 +49,7 @@ namespace IntelligenceAcademy.Controllers
             return Ok(new { Success = true, Message = "User added successfully." });
         }
 
-        [Authorize]
+        [AllowAnonymous]
         [HttpPut("UpdateUser/{id}")]
         public async Task<IActionResult> UpdateUser(int id, [FromBody] User model)
         {
@@ -58,13 +58,22 @@ namespace IntelligenceAcademy.Controllers
             return Ok(new { Success = true, Message = "User updated successfully" });
         }
 
-        [Authorize]
+        [AllowAnonymous]
         [HttpDelete("DeleteUser/{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
             await _userService.DeleteAsync(id);
 
             return Ok(new { Success = true, Message = $"User with ID {id} deleted successfully." });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("GoogleSignIn")]
+        public async Task<IActionResult> GoogleSignIn([FromBody] string idToken)
+        {
+            var result = await _userService.GoogleSignInAsync(idToken);
+
+            return Ok(result);
         }
     }
 }

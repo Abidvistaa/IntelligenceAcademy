@@ -1,7 +1,9 @@
-﻿using IntelligenceAcademy.Model;
+﻿using Google.Apis.Auth;
+using IntelligenceAcademy.Model;
 using IntelligenceAcademy.Repository;
 using IntelligenceAcademy.ViewModel;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json.Linq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -17,14 +19,17 @@ namespace IntelligenceAcademy.Service
         Task UpdateAsync(int id, User obj);
         Task DeleteAsync(int id);
         Task<LoginViewModel> LoginAsync(LoginViewModel obj);
+        Task<GoogleSignInViewModel> GoogleSignInAsync(string idToken);
     }
     public class UserService : IUserService
     {
         private readonly IRepository<User> _userRepository;
+        private readonly IConfiguration _config;
 
-        public UserService(IRepository<User> userRepository)
+        public UserService(IRepository<User> userRepository, IConfiguration config)
         {
             _userRepository = userRepository;
+            _config = config;
         }
         public async Task<IEnumerable<User>> GetAllAsync()
         {
@@ -152,7 +157,6 @@ namespace IntelligenceAcademy.Service
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
         public async Task<LoginViewModel> LoginAsync(LoginViewModel obj)
         {
 
@@ -167,6 +171,8 @@ namespace IntelligenceAcademy.Service
 
                 return new LoginViewModel
                 {
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
                     Email = user.Email,
                     Token = token
                 };
@@ -179,6 +185,51 @@ namespace IntelligenceAcademy.Service
             {
                 throw new Exception("Login failed due to a system error.", ex);
             }
+        }
+        public async Task<GoogleSignInViewModel> GoogleSignInAsync(string idToken)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(idToken))
+                    throw new Exception("Token is required");
+
+                var payload = await GoogleJsonWebSignature.ValidateAsync(
+                    idToken,
+                    new GoogleJsonWebSignature.ValidationSettings
+                    {
+                        Audience = new[] { _config["GoogleAuth:ClientId"] }
+                    });
+
+
+                var user = (await _userRepository.GetAllAsync()).Where(x => x.Email == payload.Email).FirstOrDefault();
+
+                if (user == null)
+                    user = new User
+                    {
+                        Email = payload.Email,
+                        FirstName = payload.Name,
+                        LastName = "",
+                        Password = "",
+                        AccountType = "Google",
+                        ActionDate = DateTime.Now
+                    };
+
+                await _userRepository.AddAsync(user);
+
+                var jwtToken = GenerateJwtToken(payload.Email);
+
+                return new GoogleSignInViewModel
+                {
+                    Name = payload.Name,
+                    Email = user.Email,
+                    Token = jwtToken
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Login failed due to a system error.", ex);
+            }
+            
         }
     }
 }
